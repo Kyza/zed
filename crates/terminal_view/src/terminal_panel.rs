@@ -100,7 +100,7 @@ impl TerminalPanel {
         terminal_panel
     }
 
-    pub fn asssistant_enabled(&mut self, enabled: bool, cx: &mut ViewContext<Self>) {
+    pub fn set_assistant_enabled(&mut self, enabled: bool, cx: &mut ViewContext<Self>) {
         self.assistant_enabled = enabled;
         if enabled {
             let focus_handle = self
@@ -1392,6 +1392,10 @@ impl Panel for TerminalPanel {
 
     fn pane(&self) -> Option<View<Pane>> {
         Some(self.active_pane.clone())
+    }
+
+    fn activation_priority(&self) -> u32 {
+        1
     }
 }
 
