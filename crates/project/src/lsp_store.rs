@@ -87,9 +87,8 @@ pub use language::Location;
 #[cfg(any(test, feature = "test-support"))]
 pub use prettier::FORMAT_SUFFIX as TEST_PRETTIER_FORMAT_SUFFIX;
 pub use worktree::{
-    Entry, EntryKind, File, LocalWorktree, PathChange, ProjectEntryId, RepositoryEntry,
-    UpdatedEntriesSet, UpdatedGitRepositoriesSet, Worktree, WorktreeId, WorktreeSettings,
-    FS_WATCH_LATENCY,
+    Entry, EntryKind, File, LocalWorktree, PathChange, ProjectEntryId, UpdatedEntriesSet,
+    UpdatedGitRepositoriesSet, Worktree, WorktreeId, WorktreeSettings, FS_WATCH_LATENCY,
 };
 
 const SERVER_LAUNCHING_BEFORE_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
@@ -2353,8 +2352,16 @@ impl LocalLspStore {
                             let (mut edits, mut snippet_edits) = (vec![], vec![]);
                             for edit in op.edits {
                                 match edit {
-                                    Edit::Plain(edit) => edits.push(edit),
-                                    Edit::Annotated(edit) => edits.push(edit.text_edit),
+                                    Edit::Plain(edit) => {
+                                        if !edits.contains(&edit) {
+                                            edits.push(edit)
+                                        }
+                                    }
+                                    Edit::Annotated(edit) => {
+                                        if !edits.contains(&edit.text_edit) {
+                                            edits.push(edit.text_edit)
+                                        }
+                                    }
                                     Edit::Snippet(edit) => {
                                         let Ok(snippet) = Snippet::parse(&edit.snippet.value)
                                         else {
@@ -2365,10 +2372,13 @@ impl LocalLspStore {
                                             snippet_edits.push((edit.range, snippet));
                                         } else {
                                             // Since this buffer is not focused, apply a normal edit.
-                                            edits.push(TextEdit {
+                                            let new_edit = TextEdit {
                                                 range: edit.range,
                                                 new_text: snippet.text,
-                                            });
+                                            };
+                                            if !edits.contains(&new_edit) {
+                                                edits.push(new_edit);
+                                            }
                                         }
                                     }
                                 }
@@ -3098,6 +3108,7 @@ impl LspStore {
             WorktreeStoreEvent::WorktreeUpdateSent(worktree) => {
                 worktree.update(cx, |worktree, _cx| self.send_diagnostic_summaries(worktree));
             }
+            WorktreeStoreEvent::GitRepositoryUpdated => {}
         }
     }
 
